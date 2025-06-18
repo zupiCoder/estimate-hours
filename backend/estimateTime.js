@@ -1,25 +1,17 @@
-const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
-const { exec, spawn, execSync } = require('child_process');
-const { error } = require('console');
-const { stderr, cwd } = require('process');
-const prompt = require('prompt-sync')();
+import axios from 'axios';
+import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
+import { error } from 'console';
+import { fileURLToPath } from 'url';
 
-
-const USERNAME = prompt('Enter GitHub username: ').trim();
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const targetDir = path.join(__dirname, 'clonedRepos');
 
-if(fs.existsSync(targetDir)) {
-    fs.rmSync(targetDir, { recursive: true, force: true });
-}
-
-fs.mkdirSync(targetDir, { recursive: true });
-
-const getRepos = async () => {
+const getRepos = async (username) => {
     try {
-        const response = await axios.get(`https://api.github.com/users/${USERNAME}/repos`);
+        const response = await axios.get(`https://api.github.com/users/${username}/repos`);
         return response.data;
     } catch {
         console.log(error.message);
@@ -50,7 +42,7 @@ const calculateEstimate = (repoPath) => {
         console.error(`Estimation failed for ${repoPath}: ${error.message}`);
         return 0;
     }
-};
+}
 
 const getEstimatedTime = (publicRepos) => {
     let time = 0;
@@ -64,8 +56,21 @@ const getEstimatedTime = (publicRepos) => {
     return time;
 }
 
-async function main() {
-    const publicRepos = await getRepos();
+const removeOldRepos = (targetDir) => {
+    // Clean up existing directory
+    if(fs.existsSync(targetDir)) {
+        fs.rmSync(targetDir, { recursive: true, force: true });
+    }
+    // Create fresh directory
+    fs.mkdirSync(targetDir, { recursive: true });
+}
+
+export async function estimateTime(username) {
+
+    targetDir = path.join(targetDir, username);
+    removeOldRepos(targetDir);
+
+    const publicRepos = await getRepos(username);
 
     for (const repo of publicRepos) {
         const repoUrl = repo.clone_url;
@@ -76,6 +81,5 @@ async function main() {
     const roundedHours = Math.round(totalHours);
 
     console.log(`Estimated total hours: ${roundedHours} h`);
+    return roundedHours;
 }
-
-main();
