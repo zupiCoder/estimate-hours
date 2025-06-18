@@ -5,6 +5,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Cloned repositories (avoid nested git repos)
+clonedRepos/
+backend/clonedRepos/
+
 # Build outputs
 dist/
 dist-ssr/
