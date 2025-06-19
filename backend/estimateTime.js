@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const targetDir = path.join(__dirname, 'clonedRepos');
+// const targetDir = path.join(__dirname, 'clonedRepos');
 
 const getRepos = async (username) => {
     try {
@@ -19,7 +19,17 @@ const getRepos = async (username) => {
     }
 }
 
-const cloneRepo = (repoUrl) => {
+const getSpecificRepo = async (username, repoName) => {
+    try {
+        const response = await axios.get(`https://api.github.com/users/${username}/repos/${repoName}`)
+        return response.data;
+    } catch(error) {
+        console.log(error.message);
+        return;
+    }
+}
+
+const cloneRepo = (repoUrl, targetDir) => {
     execSync(`git clone --no-checkout ${repoUrl}`, {cwd: targetDir});
 }
 
@@ -44,7 +54,7 @@ const calculateEstimate = (repoPath) => {
     }
 }
 
-const getEstimatedTime = (publicRepos) => {
+const getEstimatedTime = (publicRepos, targetDir) => {
     let time = 0;
 
     for(const repo of publicRepos) {
@@ -67,17 +77,18 @@ const removeOldRepos = (targetDir) => {
 
 export async function estimateTime(username) {
 
-    targetDir = path.join(targetDir, username);
+    //fix targetDir at initialisation
+    const targetDir = path.join(targetDir, username);
     removeOldRepos(targetDir);
 
     const publicRepos = await getRepos(username);
 
     for (const repo of publicRepos) {
         const repoUrl = repo.clone_url;
-        cloneRepo(repoUrl);
+        cloneRepo(repoUrl, targetDir);
     }
 
-    const totalHours = getEstimatedTime(publicRepos);
+    const totalHours = getEstimatedTime(publicRepos, targetDir);
     const roundedHours = Math.round(totalHours);
 
     console.log(`Estimated total hours: ${roundedHours} h`);
